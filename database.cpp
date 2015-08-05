@@ -584,6 +584,7 @@ void Database::addGene(GenePtr gene)
                   ", name"
                   ", backward_chain"
                   ", protein_but_not_rna"
+                  ", pseudo_gene"
                   ", startt"
                   ", endd"
                   ", start_code"
@@ -594,6 +595,7 @@ void Database::addGene(GenePtr gene)
                   ", :name"
                   ", :backward_chain"
                   ", :protein_but_not_rna"
+                  ", :pseudo_gene"
                   ", :startt"
                   ", :endd"
                   ", :start_code"
@@ -604,6 +606,7 @@ void Database::addGene(GenePtr gene)
     query.bindValue(":name", gene->name);
     query.bindValue(":backward_chain", gene->backwardChain);
     query.bindValue(":protein_but_not_rna", gene->isProteinButNotRna);
+    query.bindValue(":pseudo_gene", gene->isPseudoGene);
     query.bindValue(":startt", UINT32_MAX == gene->start ? 0 : gene->start);
     query.bindValue(":endd", gene->end);
     query.bindValue(":start_code", UINT32_MAX == gene->startCode ? 0 : gene->startCode);
