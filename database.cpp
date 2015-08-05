@@ -19,23 +19,37 @@ QMap<QString, TaxKingdomPtr> Database::_kingdoms;
 QMap<QPair<QString,QString>, TaxGroup1Ptr> Database::_taxGroups1;
 QMap<QPair<QString,QString>, TaxGroup2Ptr> Database::_taxGroups2;
 
+QMutex Database::_connectionsMutex;
+QMap<Qt::HANDLE,QSqlDatabase> Database::_connections;
+
 QSharedPointer<Database> Database::open(const QString &host,
                          const QString &userName, const QString &password,
                          const QString &dbName, const QString &sequencesStoreDir)
 {
     QSharedPointer<Database> result(new Database);
-    result->_db = QSqlDatabase::addDatabase(
-                "QMYSQL",
-                QString("introns_db_fill_pid%1_thread%2")
-                .arg(qApp->applicationPid())
-                .arg(qint64(QThread::currentThreadId()))
-                .toLatin1()
-                );
-    result->_db.setHostName(host);
-    result->_db.setUserName(userName);
-    result->_db.setPassword(password);
-    result->_db.setDatabaseName(dbName);
-    result->_db.setConnectOptions("CLIENT_COMPRESS=1");
+
+    QMutexLocker lock(&_connectionsMutex);
+    const Qt::HANDLE threadId = QThread::currentThreadId();
+
+    if (_connections.contains(threadId)) {
+        result->_db = &_connections[threadId];
+    }
+    else {
+        _connections[threadId] = QSqlDatabase::addDatabase(
+                    "QMYSQL",
+                    QString("introns_db_fill_pid%1_thread%2")
+                    .arg(qApp->applicationPid())
+                    .arg(qint64(QThread::currentThreadId()))
+                    .toLatin1()
+                    );
+
+        _connections[threadId].setHostName(host);
+        _connections[threadId].setUserName(userName);
+        _connections[threadId].setPassword(password);
+        _connections[threadId].setDatabaseName(dbName);
+        _connections[threadId].setConnectOptions("CLIENT_COMPRESS=1");
+        result->_db = &_connections[threadId];
+    }
     result->_sequencesStoreDir = QDir::root();
 
     if (sequencesStoreDir.length() > 0) {
@@ -45,7 +59,7 @@ QSharedPointer<Database> Database::open(const QString &host,
         }
     }
 
-    if (!result->_db.open()) {
+    if (!result->_db->open()) {
         result.clear();
     }
 
@@ -55,17 +69,17 @@ QSharedPointer<Database> Database::open(const QString &host,
 OrganismPtr Database::findOrCreateOrganism(const QString &name)
 {
     OrganismPtr organism;
-    _organismsMutex.lock();
+    QMutexLocker lock(&_organismsMutex);
+
     if (_organisms.contains(name)) {
         organism = _organisms[name];
-    }
-    _organismsMutex.unlock();
+    }    
 
     if (organism) {
         return organism;
     }
 
-    QSqlQuery selectQuery("", _db);
+    QSqlQuery selectQuery("", *_db);
     selectQuery.prepare("SELECT * FROM organisms WHERE name=:name");
     selectQuery.bindValue(":name", name);
 
@@ -107,7 +121,7 @@ OrganismPtr Database::findOrCreateOrganism(const QString &name)
             // Insert into table new one
             organism = OrganismPtr(new Organism);
             organism->name = name;
-            QSqlQuery insertQuery("", _db);
+            QSqlQuery insertQuery("", *_db);
             insertQuery.prepare("INSERT INTO organisms(name) VALUES(:name)");
             insertQuery.bindValue(":name", name);
             if (!insertQuery.exec()) {
@@ -118,12 +132,11 @@ OrganismPtr Database::findOrCreateOrganism(const QString &name)
             else {
                 organism->id = insertQuery.lastInsertId().toInt();
             }
+            _db->commit();
         }
     }
 
-    _organismsMutex.lock();
     _organisms[name] = organism;
-    _organismsMutex.unlock();
 
     return organism;
 }
@@ -148,7 +161,7 @@ void Database::updateOrganism(OrganismPtr organism)
     }
     _organismsMutex.unlock();
 
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     // TODO tax groups id
     query.prepare("UPDATE organisms SET "
                         "name=:name, "
@@ -215,7 +228,7 @@ TaxKingdomPtr Database::findOrCreateTaxKingdom(const QString &name)
         return kingdom;
     }
 
-    QSqlQuery selectQuery("", _db);
+    QSqlQuery selectQuery("", *_db);
     selectQuery.prepare("SELECT * FROM tax_kingdoms WHERE name=:name");
     selectQuery.bindValue(":name", name);
     if (!selectQuery.exec()) {
@@ -235,7 +248,7 @@ TaxKingdomPtr Database::findOrCreateTaxKingdom(const QString &name)
         else if (0 == selectQuery.size()) {
             kingdom = TaxKingdomPtr(new TaxKingdom);
             kingdom->name = name;
-            QSqlQuery insertQuery("", _db);
+            QSqlQuery insertQuery("", *_db);
             insertQuery.prepare("INSERT INTO tax_kingdoms(name) VALUES(:name)");
             insertQuery.bindValue(":name", name);
             if (!insertQuery.exec()) {
@@ -269,7 +282,7 @@ TaxGroup1Ptr Database::findOrCreateTaxGroup1(const QString &name, const QString 
         return group;
     }
 
-    QSqlQuery selectQuery("", _db);
+    QSqlQuery selectQuery("", *_db);
     selectQuery.prepare("SELECT * FROM tax_groups1 WHERE name=:name AND typee=:typee");
     selectQuery.bindValue(":name", name);
     selectQuery.bindValue(":typee", type);
@@ -294,7 +307,7 @@ TaxGroup1Ptr Database::findOrCreateTaxGroup1(const QString &name, const QString 
             group->name = name;
             group->type = type;
             group->kingdomPtr = kingdom;
-            QSqlQuery insertQuery("", _db);
+            QSqlQuery insertQuery("", *_db);
             insertQuery.prepare("INSERT INTO tax_groups1(name,typee,id_tax_kingdoms) VALUES(:name,:typee,:id_tax_kingdoms)");
             insertQuery.bindValue(":name", name);
             insertQuery.bindValue(":typee", type);
@@ -330,7 +343,7 @@ TaxGroup2Ptr Database::findOrCreateTaxGroup2(const QString &name, const QString 
         return group;
     }
 
-    QSqlQuery selectQuery("", _db);
+    QSqlQuery selectQuery("", *_db);
     selectQuery.prepare("SELECT * FROM tax_groups1 WHERE name=:name AND typee=:typee");
     selectQuery.bindValue(":name", name);
     selectQuery.bindValue(":typee", type);
@@ -357,7 +370,7 @@ TaxGroup2Ptr Database::findOrCreateTaxGroup2(const QString &name, const QString 
             group->type = type;
             group->kingdomPtr = group1->kingdomPtr;
             group->taxGroup1Ptr = group1;
-            QSqlQuery insertQuery("", _db);
+            QSqlQuery insertQuery("", *_db);
             insertQuery.prepare("INSERT INTO tax_groups1(name,typee,id_tax_kingdoms,id_tax_groups1) VALUES(:name,:typee,:id_tax_kingdoms,:id_tax_groups)");
             insertQuery.bindValue(":name", name);
             insertQuery.bindValue(":typee", type);
@@ -390,7 +403,7 @@ void Database::dropSequenceIfExists(SequencePtr sequence)
     organism->mutex.unlock();
     const QString refSeqId = sequence->refSeqId;
 
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
 
     query.prepare("SELECT id FROM sequences WHERE id_organisms=:id_organisms AND ref_seq_id=:ref_seq_id");
     query.bindValue(":id_organisms", organismId);
@@ -463,7 +476,7 @@ void Database::addSequence(SequencePtr sequence)
 
     dropSequenceIfExists(sequence);
 
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     query.prepare("INSERT INTO sequences("
                           "source_file_name"
                           ", ref_seq_id"
@@ -565,7 +578,7 @@ void Database::storeOrigin(SequencePtr sequence)
 void Database::addGene(GenePtr gene)
 {
     const qint32 sequenceId = gene->sequence.toStrongRef()->id;
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     query.prepare("INSERT INTO genes("
                   "id_sequences"
                   ", name"
@@ -617,7 +630,7 @@ void Database::addGene(GenePtr gene)
 void Database::addIsoform(IsoformPtr isoform)
 {
     const qint32 geneId = isoform->gene.toStrongRef()->id;
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     query.prepare("INSERT INTO isoforms("
                   "id_genes"
                   ", id_sequences"
@@ -721,7 +734,7 @@ void Database::addCodingExon(CodingExonPtr exon)
     const qint32 seqId = exon->isoform.toStrongRef()->gene.toStrongRef()->sequence.toStrongRef()->id;
     const qint32 geneId = exon->isoform.toStrongRef()->gene.toStrongRef()->id;
     const qint32 isoformId = exon->isoform.toStrongRef()->id;
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     query.prepare("INSERT INTO coding_exons("
                   "id_isoforms"
                   ", id_genes"
@@ -791,7 +804,7 @@ void Database::addIntron(IntronPtr intron)
     const qint32 seqId = intron->isoform.toStrongRef()->gene.toStrongRef()->sequence.toStrongRef()->id;
     const qint32 geneId = intron->isoform.toStrongRef()->gene.toStrongRef()->id;
     const qint32 isoformId = intron->isoform.toStrongRef()->id;
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     query.prepare("INSERT INTO introns("
                   "id_isoforms"
                   ", id_genes"
@@ -870,7 +883,7 @@ void Database::addIntron(IntronPtr intron)
 void Database::updateNeigbourIntronsIds(CodingExonPtr exon)
 {
     const qint32 exonId = exon->id;
-    QSqlQuery query("", _db);
+    QSqlQuery query("", *_db);
     if (exon->prevIntron) {
         const qint32 prevId = exon->prevIntron.toStrongRef()->id;
         query.prepare("UPDATE coding_exons SET prev_intron=:prev_id WHERE id=:exon_id");
@@ -897,8 +910,8 @@ void Database::updateNeigbourIntronsIds(CodingExonPtr exon)
 
 Database::~Database()
 {
-    if (_db.isOpen()) {
-        _db.close();
+    if (_db->isOpen()) {
+        _db->close();
     }
 }
 

@@ -39,6 +39,9 @@ public:
 
 private:
 
+  static QMutex _connectionsMutex;
+  static QMap<Qt::HANDLE, QSqlDatabase> _connections;
+
   static QMutex _organismsMutex;
   static QMap<QString, OrganismPtr> _organisms;
 
@@ -49,7 +52,7 @@ private:
 
 
   QDir _sequencesStoreDir;
-  QSqlDatabase _db;
+  QSqlDatabase * _db = nullptr;
 
 };
 

@@ -585,8 +585,8 @@ void GbkParser::parseRange(const QString &value,
 
 QMap<QString, QString> GbkParser::parseFeatureAttributes(const QString &value)
 {
-    static QRegExp rxAttr("/(\\S+)=\\\"(.+)\\\"");
-    static QRegExp rxFlags("/(\\S+)");
+    QRegExp rxAttr("/(\\S+)=\\\"(.+)\\\"");
+    QRegExp rxFlags("/(\\S+)");
     rxAttr.setMinimal(true);
     QMap<QString,QString> result;
     int pos = 0;
