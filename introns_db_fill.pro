@@ -33,4 +33,14 @@ HEADERS += \
 RESOURCES +=
 
 DISTFILES += \
-    create_database.sql
+    create_database.sql \
+    README.md
+
+isEmpty(PREFIX): PREFIX = /usr/local
+
+INSTALLS = binary
+binary.files = $${TARGET}
+binary.path = $$PREFIX/bin
+
+
+
