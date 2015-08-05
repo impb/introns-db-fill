@@ -1,3 +1,4 @@
+#undef QT_NO_DEBUG
 #include "gzipreader.h"
 
 extern "C" {
