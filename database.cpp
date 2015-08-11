@@ -214,6 +214,17 @@ void Database::updateOrganism(OrganismPtr organism)
         qWarning() << query.lastQuery();
     }
 
+    if (organism->taxGroup2) {
+        query.clear();
+        query.prepare("UPDATE organisms SET id_tax_groups2=:tid WHERE id=:id");
+        query.bindValue(":tid", organism->taxGroup2.toStrongRef()->id);
+        query.bindValue(":id", organism->id);
+        if (!query.exec()) {
+            qWarning() << query.lastError();
+            qWarning() << query.lastError().text();
+            qWarning() << query.lastQuery();
+        }
+    }
 }
 
 TaxKingdomPtr Database::findOrCreateTaxKingdom(const QString &name)
@@ -371,10 +382,9 @@ TaxGroup2Ptr Database::findOrCreateTaxGroup2(const QString &name, const QString 
             group->kingdomPtr = group1->kingdomPtr;
             group->taxGroup1Ptr = group1;
             QSqlQuery insertQuery("", *_db);
-            insertQuery.prepare("INSERT INTO tax_groups1(name,typee,id_tax_kingdoms,id_tax_groups1) VALUES(:name,:typee,:id_tax_kingdoms,:id_tax_groups)");
+            insertQuery.prepare("INSERT INTO tax_groups2(name,typee,id_tax_groups1) VALUES(:name,:typee,:id_tax_groups1)");
             insertQuery.bindValue(":name", name);
             insertQuery.bindValue(":typee", type);
-            insertQuery.bindValue(":id_tax_kingdoms", group1->kingdomPtr.toStrongRef()->id);
             insertQuery.bindValue(":id_tax_groups1", group1->id);
 
             if (!insertQuery.exec()) {

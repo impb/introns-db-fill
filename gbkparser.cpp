@@ -68,8 +68,14 @@ SequencePtr GbkParser::readSequence()
                 if (topLevelName.length() > 0) {
                     parseTopLevel(topLevelName, topLevelValue, seq);
                 }
-                topLevelName = prefix;
-                topLevelValue = value;
+                if (State::Features == _state) {
+                    secondLevelName = prefix;
+                    secondLevelValue = value;
+                }
+                else {
+                    topLevelName = prefix;
+                    topLevelValue = value;
+                }
             }
         }
         else if (State::Features == _state) {

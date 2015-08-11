@@ -177,6 +177,7 @@ void Worker::processOneFile()
                 continue;
             }
             supplParser->updateOrganism(seq->organism);
+            supplParser->updateOrganismTaxonomy(seq->organism);
             if (seq->organism) {
                 db->updateOrganism(seq->organism);
             }

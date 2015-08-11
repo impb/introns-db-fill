@@ -8,6 +8,7 @@ QT       += core sql
 QT       -= gui
 
 QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS_DEBUG += -O0
 QMAKE_LIBS += -lz
 
 TARGET = introns_db_fill
