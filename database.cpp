@@ -198,7 +198,9 @@ ChromosomePtr Database::findOrCreateChromosome(const QString &name, OrganismPtr 
                 chromosome->id = insertQuery.lastInsertId().toInt();
             }
             _db->commit();
-            organism->dbChromosomeCount ++;
+            if (!name.toLower().startsWith("unk")) {
+                organism->dbChromosomeCount ++;
+            }
         }
     }
     _chromosomes[key] = chromosome;
@@ -621,9 +623,19 @@ void Database::addSequence(SequencePtr sequence)
         ChromosomePtr chromosome = sequence->chromosome;
         chromosome->mutex.lock();
         chromosome->length += sequence->length;
+        const QString chromosomeName = chromosome->name;
         chromosome->mutex.unlock();
         updateChromosome(chromosome);
+        if (chromosomeName.toLower().startsWith("unk")) {
+            organism->mutex.lock();
+            organism->unknownSequencesCount ++;
+            organism->mutex.unlock();
+        }
     }
+
+    organism->mutex.lock();
+    organism->totalSequencesLength += sequence->length;
+    organism->mutex.unlock();
 }
 
 void Database::storeOrigin(SequencePtr sequence)
