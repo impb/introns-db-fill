@@ -104,7 +104,7 @@ CREATE TABLE organisms(
     real_mitochondria BOOLEAN DEFAULT 0,
     db_mitochondria BOOLEAN DEFAULT 0,
     unknown_sequences_count INT DEFAULT 0,
-    total_sequences_length INT DEFAULT 0,
+    total_sequences_length BIGINT DEFAULT 0,
     b_genes_count INT DEFAULT 0,
     r_genes_count INT DEFAULT 0,
     cds_count INT DEFAULT 0,

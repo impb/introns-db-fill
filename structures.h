@@ -106,7 +106,7 @@ struct Organism
     bool            realMitochondria = false;
     bool            dbMitochondria = false;
     quint32         unknownSequencesCount = 0;
-    quint32         totalSequencesLength = 0;
+    quint64         totalSequencesLength = 0;
     quint32         bGenesCount = 0;
     quint32         rGenesCount = 0;
     quint32         cdsCount = 0;
