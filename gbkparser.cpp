@@ -235,7 +235,7 @@ void GbkParser::parseSecondLevel(const QString &prefix, QString value, SequenceP
                     attrs["db_xref"];
         }
         if (attrs.contains("organism")) {
-            Q_ASSERT(seq->organism.toStrongRef()->name == attrs["organism"]);
+            //Q_ASSERT(seq->organism.toStrongRef()->name == attrs["organism"]);
         }
     }
     else if ("CDS" == prefix || "mRNA" == prefix) {
