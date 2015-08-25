@@ -14,6 +14,9 @@
 QMap<QString, OrganismPtr> Database::_organisms;
 QMutex Database::_organismsMutex;
 
+QMap<QPair<OrganismPtr,QString>, ChromosomePtr> Database::_chromosomes;
+QMutex Database::_chromosomesMutex;
+
 QMutex Database::_taxMutex;
 QMap<QString, TaxKingdomPtr> Database::_kingdoms;
 QMap<QPair<QString,QString>, TaxGroup1Ptr> Database::_taxGroups1;
@@ -141,6 +144,67 @@ OrganismPtr Database::findOrCreateOrganism(const QString &name)
     return organism;
 }
 
+ChromosomePtr Database::findOrCreateChromosome(const QString &name, OrganismPtr organism)
+{
+    ChromosomePtr chromosome;
+    QMutexLocker locker(&_chromosomesMutex);
+    QMutexLocker locker2(&organism->mutex);
+
+    const QPair<OrganismPtr,QString> key(organism, name);
+
+    if (_chromosomes.contains(key)) {
+        chromosome = _chromosomes[key];
+    }
+
+    if (chromosome) {
+        return chromosome;
+    }
+
+    QSqlQuery selectQuery("", *_db);
+    selectQuery.prepare("SELECT * FROM chromosomes WHERE name=:name AND id_organisms=:org_id");
+    selectQuery.bindValue(":name", name);
+    selectQuery.bindValue(":org_id", organism->id);
+
+    if (!selectQuery.exec()) {
+        qWarning() << selectQuery.lastError();
+        qWarning() << selectQuery.lastError().text();
+        qWarning() << selectQuery.lastQuery();
+    }
+    else {
+        Q_ASSERT(selectQuery.size() == 1 || selectQuery.size() == 0);  // Unique values in table
+        if (1 == selectQuery.size()) {
+            selectQuery.seek(0);
+            QSqlRecord chromosomeRecord = selectQuery.record();
+            chromosome = ChromosomePtr(new Chromosome);
+            chromosome->length = chromosomeRecord.field("lengthh").value().toUInt();
+            chromosome->name = name;
+            chromosome->id = chromosomeRecord.field("id").value().toInt();
+        }
+        else if (0 == selectQuery.size()) {
+            // Insert into table new one
+            chromosome = ChromosomePtr(new Chromosome);
+            chromosome->name = name;
+
+            QSqlQuery insertQuery("", *_db);
+            insertQuery.prepare("INSERT INTO chromosomes(name, id_organisms) VALUES(:name,:org_id)");
+            insertQuery.bindValue(":name", name);
+            insertQuery.bindValue(":org_id", organism->id);
+            if (!insertQuery.exec()) {
+                qWarning() << insertQuery.lastError();
+                qWarning() << insertQuery.lastError().text();
+                qWarning() << insertQuery.lastQuery();
+            }
+            else {
+                chromosome->id = insertQuery.lastInsertId().toInt();
+            }
+            _db->commit();
+            organism->dbChromosomeCount ++;
+        }
+    }
+    _chromosomes[key] = chromosome;
+    return chromosome;
+}
+
 void Database::updateOrganism(OrganismPtr organism)
 {
     QMutexLocker lock(&organism->mutex);
@@ -224,6 +288,26 @@ void Database::updateOrganism(OrganismPtr organism)
             qWarning() << query.lastError().text();
             qWarning() << query.lastQuery();
         }
+    }
+}
+
+void Database::updateChromosome(ChromosomePtr chromosome)
+{
+    if (!chromosome) {
+        return;
+    }
+    QMutexLocker locker(&chromosome->mutex);
+    if (0==chromosome->id) {
+        return;
+    }
+    QSqlQuery query("", *_db);
+    query.prepare("UPDATE chromosomes SET lengthh=:l WHERE id=:id");
+    query.bindValue(":l", chromosome->length);
+    query.bindValue(":id", chromosome->id);
+    if (!query.exec()) {
+        qWarning() << query.lastError();
+        qWarning() << query.lastError().text();
+        qWarning() << query.lastQuery();
     }
 }
 
@@ -509,7 +593,14 @@ void Database::addSequence(SequencePtr sequence)
     query.bindValue(":description", sequence->description);
     query.bindValue(":lengthh", sequence->length);
     query.bindValue(":id_organisms", organismId);
-    query.bindValue(":id_chromosomes", 0);
+    qint32 chromosomeId = 0;
+    if (sequence->chromosome) {
+        ChromosomePtr chr = sequence->chromosome.toStrongRef();
+        chr->mutex.lock();
+        chromosomeId = chr->id;
+        chr->mutex.unlock();
+    }
+    query.bindValue(":id_chromosomes", chromosomeId);
     query.bindValue(":origin_file_name", sequence->originFileName);
 
     if (!query.exec()) {
@@ -524,6 +615,14 @@ void Database::addSequence(SequencePtr sequence)
 
     Q_FOREACH(GenePtr gene, sequence->genes) {
         addGene(gene);
+    }
+
+    if (sequence->chromosome) {
+        ChromosomePtr chromosome = sequence->chromosome;
+        chromosome->mutex.lock();
+        chromosome->length += sequence->length;
+        chromosome->mutex.unlock();
+        updateChromosome(chromosome);
     }
 }
 

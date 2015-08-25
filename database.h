@@ -18,7 +18,9 @@ public:
                         const QString &dbName, const QString &sequencesStoreDir);
 
   OrganismPtr findOrCreateOrganism(const QString & name);
+  ChromosomePtr findOrCreateChromosome(const QString &name, OrganismPtr organism);
   void updateOrganism(OrganismPtr organism);
+  void updateChromosome(ChromosomePtr chromosome);
 
   TaxKingdomPtr findOrCreateTaxKingdom(const QString & name);
   TaxGroup1Ptr findOrCreateTaxGroup1(const QString & name, const QString & type, TaxKingdomPtr kingdom);
@@ -44,6 +46,9 @@ private:
 
   static QMutex _organismsMutex;
   static QMap<QString, OrganismPtr> _organisms;
+
+  static QMutex _chromosomesMutex;
+  static QMap<QPair<OrganismPtr,QString>, ChromosomePtr> _chromosomes;
 
   static QMutex _taxMutex;
   static QMap<QString, TaxKingdomPtr> _kingdoms;

@@ -237,6 +237,13 @@ void GbkParser::parseSecondLevel(const QString &prefix, QString value, SequenceP
         if (attrs.contains("organism")) {
             //Q_ASSERT(seq->organism.toStrongRef()->name == attrs["organism"]);
         }
+        if (attrs.contains("chromosome")) {
+            seq->chromosome =
+                    _db->findOrCreateChromosome(
+                        attrs["chromosome"],
+                        seq->organism.toStrongRef()
+                    );
+        }
     }
     else if ("CDS" == prefix || "mRNA" == prefix) {
         parseCdsOrRna(prefix, value, seq);
