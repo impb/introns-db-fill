@@ -265,6 +265,12 @@ GenePtr GbkParser::parseGene(const QString & value, SequencePtr seq)
         gene->name = attrs["gene"];
     }
     gene->isPseudoGene = attrs.contains("pseudo") || attrs.contains("pseudogene");
+    if (seq->chromosome && seq->chromosome.toStrongRef()->name.toLower().startsWith("unk")) {
+        OrganismPtr organism = seq->organism.toStrongRef();
+        organism->mutex.lock();
+        organism->unknownProtGenesCount++;
+        organism->mutex.unlock();
+    }
     return gene;
 }
 
@@ -303,6 +309,9 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         targetGene->hasCDS = true;
         organism->mutex.lock();
         organism->cdsCount ++;
+        if (seq->chromosome && seq->chromosome.toStrongRef()->name.toLower().startsWith("unk")) {
+            organism->unknownProtCdsCount ++;
+        }
         organism->mutex.unlock();
 
         targetIsoform->cdsStart = start;

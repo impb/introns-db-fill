@@ -628,7 +628,6 @@ void Database::addSequence(SequencePtr sequence)
         updateChromosome(chromosome);
         if (chromosomeName.toLower().startsWith("unk")) {
             organism->mutex.lock();
-            
             organism->unknownSequencesCount ++;
             organism->mutex.unlock();
         }
