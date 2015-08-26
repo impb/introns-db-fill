@@ -178,11 +178,11 @@ void Worker::processOneFile()
             }
             supplParser->updateOrganism(seq->organism);
             supplParser->updateOrganismTaxonomy(seq->organism);
+            db->storeOrigin(seq);
+            db->addSequence(seq);
             if (seq->organism) {
                 db->updateOrganism(seq->organism);
             }
-            db->storeOrigin(seq);
-            db->addSequence(seq);
         }
     }
 

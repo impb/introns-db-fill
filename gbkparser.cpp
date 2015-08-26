@@ -244,8 +244,13 @@ void GbkParser::parseSecondLevel(const QString &prefix, QString value, SequenceP
                         seq->organism.toStrongRef()
                     );
         }
+        else if (attrs.contains("organelle") && "mitochondrion" == attrs["organelle"]) {
+            seq->chromosome =
+                    _db->findOrCreateChromosome("mitochondrion",
+                                                seq->organism.toStrongRef());
+        }
     }
-    else if ("CDS" == prefix || "mRNA" == prefix) {
+    else if ("CDS" == prefix || prefix.endsWith("RNA")) {
         parseCdsOrRna(prefix, value, seq);
     }
 }
@@ -276,6 +281,7 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
 
     GenePtr targetGene;
     IsoformPtr targetIsoform;
+    OrganismPtr organism = seq->organism.toStrongRef();
 
     if ("CDS" == prefix) {
         // CDS might have non-coding bounds inside gene
@@ -294,6 +300,11 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         if (! targetIsoform) {
             return;
         }
+        targetGene->hasCDS = true;
+        organism->mutex.lock();
+        organism->cdsCount ++;
+        organism->rnaCount --;
+        organism->mutex.unlock();
 
         targetIsoform->cdsStart = start;
         targetIsoform->cdsEnd = end;
@@ -309,12 +320,18 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         if (! targetGene) {
             return;
         }
+        targetGene->hasRNA;
+        organism->mutex.lock();
+        organism->rnaCount ++;
+        organism->mutex.unlock();
 
-        targetIsoform = IsoformPtr(new Isoform);
-        targetIsoform->mrnaStart = start;
-        targetIsoform->mrnaEnd = end;
-        targetIsoform->exonsMrnaCount = starts.size();
-        targetGene->isoforms.push_back(targetIsoform);
+        if ("mRNA" == prefix) {
+            targetIsoform = IsoformPtr(new Isoform);
+            targetIsoform->mrnaStart = start;
+            targetIsoform->mrnaEnd = end;
+            targetIsoform->exonsMrnaCount = starts.size();
+            targetGene->isoforms.push_back(targetIsoform);
+        }
     }
 
     if (! targetIsoform) {

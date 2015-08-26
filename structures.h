@@ -162,6 +162,8 @@ struct Gene {
     quint32         maxIntronsCount = 0;
 
     QList<IsoformPtr> isoforms;
+    bool            hasCDS = false;
+    bool            hasRNA = false;
 };
 
 
@@ -193,6 +195,7 @@ struct Isoform {
 
     QList<CodingExonPtr>    exons;
     QList<IntronPtr>        introns;
+    bool            hasCDS = false;
 };
 
 

@@ -198,7 +198,7 @@ ChromosomePtr Database::findOrCreateChromosome(const QString &name, OrganismPtr 
                 chromosome->id = insertQuery.lastInsertId().toInt();
             }
             _db->commit();
-            if (!name.toLower().startsWith("unk")) {
+            if (!name.toLower().startsWith("unk") && !name.toLower().startsWith("mit")) {
                 organism->dbChromosomeCount ++;
             }
         }
@@ -628,6 +628,7 @@ void Database::addSequence(SequencePtr sequence)
         updateChromosome(chromosome);
         if (chromosomeName.toLower().startsWith("unk")) {
             organism->mutex.lock();
+            
             organism->unknownSequencesCount ++;
             organism->mutex.unlock();
         }
@@ -635,6 +636,18 @@ void Database::addSequence(SequencePtr sequence)
 
     organism->mutex.lock();
     organism->totalSequencesLength += sequence->length;
+    Q_FOREACH(GenePtr gene, sequence->genes) {
+        if (gene->hasCDS) {
+            organism->bGenesCount ++;
+        }
+        if (gene->hasRNA && !gene->hasCDS) {
+            organism->rGenesCount ++;
+        }
+        Q_FOREACH(IsoformPtr iso, gene->isoforms) {
+            organism->exonsCount += iso->exons.size();
+            organism->intronsCount += iso->introns.size();
+        }
+    }
     organism->mutex.unlock();
 }
 
@@ -695,6 +708,7 @@ void Database::storeOrigin(SequencePtr sequence)
     }
     originFile.close();
 }
+
 
 void Database::addGene(GenePtr gene)
 {

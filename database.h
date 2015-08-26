@@ -19,6 +19,7 @@ public:
 
   OrganismPtr findOrCreateOrganism(const QString & name);
   ChromosomePtr findOrCreateChromosome(const QString &name, OrganismPtr organism);
+
   void updateOrganism(OrganismPtr organism);
   void updateChromosome(ChromosomePtr chromosome);
 
