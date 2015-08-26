@@ -328,7 +328,7 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
             targetGene->isoforms.push_back(targetIsoform);
         }
         else {
-            targetGene->hasRNA;
+            targetGene->hasRNA = true;
             organism->mutex.lock();
             organism->rnaCount ++;
             organism->mutex.unlock();
