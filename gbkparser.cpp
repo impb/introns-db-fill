@@ -303,7 +303,6 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         targetGene->hasCDS = true;
         organism->mutex.lock();
         organism->cdsCount ++;
-        organism->rnaCount --;
         organism->mutex.unlock();
 
         targetIsoform->cdsStart = start;
@@ -320,10 +319,6 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         if (! targetGene) {
             return;
         }
-        targetGene->hasRNA;
-        organism->mutex.lock();
-        organism->rnaCount ++;
-        organism->mutex.unlock();
 
         if ("mRNA" == prefix) {
             targetIsoform = IsoformPtr(new Isoform);
@@ -331,6 +326,12 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
             targetIsoform->mrnaEnd = end;
             targetIsoform->exonsMrnaCount = starts.size();
             targetGene->isoforms.push_back(targetIsoform);
+        }
+        else {
+            targetGene->hasRNA;
+            organism->mutex.lock();
+            organism->rnaCount ++;
+            organism->mutex.unlock();
         }
     }
 
