@@ -138,6 +138,7 @@ CREATE TABLE sequences(
 
 CREATE TABLE genes(
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_organisms INT NOT NULL,
     id_sequences INT NOT NULL,
     id_orthologous_groups INT,
     name VARCHAR(20),

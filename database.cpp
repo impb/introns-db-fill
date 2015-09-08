@@ -712,9 +712,14 @@ void Database::storeOrigin(SequencePtr sequence)
 void Database::addGene(GenePtr gene)
 {
     const qint32 sequenceId = gene->sequence.toStrongRef()->id;
+    OrganismPtr organism = gene->sequence.toStrongRef()->organism.toStrongRef();
+    organism->mutex.lock();
+    const qint32 organismId = organism->id;
+    organism->mutex.unlock();
     QSqlQuery query("", *_db);
     query.prepare("INSERT INTO genes("
                   "id_sequences"
+                  ", id_organisms"
                   ", name"
                   ", backward_chain"
                   ", protein_but_not_rna"
@@ -726,6 +731,7 @@ void Database::addGene(GenePtr gene)
                   ", max_introns_count"
                   ") VALUES("
                   ":id_sequences"
+                  ", :id_organisms"
                   ", :name"
                   ", :backward_chain"
                   ", :protein_but_not_rna"
@@ -737,6 +743,7 @@ void Database::addGene(GenePtr gene)
                   ", :max_introns_count"
                   ")");
     query.bindValue(":id_sequences", sequenceId);
+    query.bindValue(":id_organisms", organismId);
     query.bindValue(":name", gene->name);
     query.bindValue(":backward_chain", gene->backwardChain);
     query.bindValue(":protein_but_not_rna", gene->isProteinButNotRna);
