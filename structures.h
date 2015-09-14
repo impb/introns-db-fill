@@ -170,6 +170,9 @@ struct Gene {
 
 struct Isoform {
     qint32          id = 0;
+    enum Type {
+        MRNA = 0, CDS = 1, Other = 255
+    }               type = Other;
     GeneWPtr        gene;
     SequenceWPtr    sequence;
     QString         proteinXref;

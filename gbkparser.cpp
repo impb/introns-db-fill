@@ -306,6 +306,16 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         if (! targetIsoform) {
             return;
         }
+
+        if (Isoform::CDS == targetIsoform->type) {
+            // There is existing CDS, so clone it as new isoform
+            targetIsoform = IsoformPtr(new Isoform(*targetIsoform.data()));
+            targetGene->isoforms.push_back(targetIsoform);
+            targetIsoform->exons.clear();
+            targetIsoform->introns.clear();
+        }
+
+        targetIsoform->type = Isoform::CDS;
         targetGene->hasCDS = true;
         organism->mutex.lock();
         organism->cdsCount ++;
@@ -331,6 +341,7 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
 
         if ("mRNA" == prefix) {
             targetIsoform = IsoformPtr(new Isoform);
+            targetIsoform->type = Isoform::MRNA;
             targetIsoform->mrnaStart = start;
             targetIsoform->mrnaEnd = end;
             targetIsoform->exonsMrnaCount = starts.size();
