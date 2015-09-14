@@ -21,7 +21,7 @@ struct Chromosome;
 struct Sequence;
 struct Gene;
 struct Isoform;
-struct CodingExon;
+struct Exon;
 struct Intron;
 
 typedef QSharedPointer<IntronType> IntronTypePtr;
@@ -34,7 +34,7 @@ typedef QSharedPointer<Chromosome> ChromosomePtr;
 typedef QSharedPointer<Sequence> SequencePtr;
 typedef QSharedPointer<Gene> GenePtr;
 typedef QSharedPointer<Isoform> IsoformPtr;
-typedef QSharedPointer<CodingExon> CodingExonPtr;
+typedef QSharedPointer<Exon> ExonPtr;
 typedef QSharedPointer<Intron> IntronPtr;
 
 typedef QWeakPointer<IntronType> IntronTypeWPtr;
@@ -47,7 +47,7 @@ typedef QWeakPointer<Chromosome> ChromosomeWPtr;
 typedef QWeakPointer<Sequence> SequenceWPtr;
 typedef QWeakPointer<Gene> GeneWPtr;
 typedef QWeakPointer<Isoform> IsoformWPtr;
-typedef QWeakPointer<CodingExon> CodingExonWPtr;
+typedef QWeakPointer<Exon> CodingExonWPtr;
 typedef QWeakPointer<Intron> IntronWPtr;
 
 
@@ -173,8 +173,9 @@ struct Isoform {
     GeneWPtr        gene;
     SequenceWPtr    sequence;
     QString         proteinXref;
-    QString         proteinName;
+    QString         proteinId;
     QString         product;
+    QString         note;
     quint32         cdsStart = UINT32_MAX;
     quint32         cdsEnd = 0;
     quint32         mrnaStart = UINT32_MAX;
@@ -193,14 +194,14 @@ struct Isoform {
     QString         errorComment;
     bool            isMaximumByIntrons = false;
 
-    QList<CodingExonPtr>    exons;
-    QList<IntronPtr>        introns;
-    bool            hasCDS = false;
+    QList<ExonPtr>    exons;
+    QList<IntronPtr>  introns;
+    bool              hasCDS = false;
 };
 
 
 
-struct CodingExon {
+struct Exon {
     qint32          id = 0;
     IsoformWPtr     isoform;
     GeneWPtr        gene;

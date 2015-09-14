@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS introns;
-DROP TABLE IF EXISTS coding_exons;
+DROP TABLE IF EXISTS exons;
 DROP TABLE IF EXISTS isoforms;
 DROP TABLE IF EXISTS genes;
 DROP TABLE IF EXISTS sequences;
@@ -158,8 +158,9 @@ create TABLE isoforms(
     id_genes INT NOT NULL,
     id_sequences INT NOT NULL,
     protein_xref VARCHAR(20),
-    protein_name VARCHAR(100),
+    protein_id VARCHAR(100),
     product VARCHAR(250),
+    note VARCHAR(250),
     cds_start INT,
     cds_end INT,
     mrna_start INT,
@@ -181,7 +182,7 @@ create TABLE isoforms(
     error_comment TEXT
 );
 
-create TABLE coding_exons(
+create TABLE exons(
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_isoforms INT NOT NULL,
     id_genes INT NOT NULL,
@@ -235,7 +236,7 @@ create TABLE introns(
 );
 
 ALTER TABLE  introns AUTO_INCREMENT = 1;
-ALTER TABLE  coding_exons AUTO_INCREMENT = 1;
+ALTER TABLE  exons AUTO_INCREMENT = 1;
 ALTER TABLE  isoforms AUTO_INCREMENT = 1;
 ALTER TABLE  genes AUTO_INCREMENT = 1;
 ALTER TABLE  sequences AUTO_INCREMENT = 1;

@@ -34,9 +34,9 @@ public:
 
   void addGene(GenePtr gene);
   void addIsoform(IsoformPtr isoform);
-  void addCodingExon(CodingExonPtr exon);
+  void addCodingExon(ExonPtr exon);
   void addIntron(IntronPtr intron);
-  void updateNeigbourIntronsIds(CodingExonPtr exon);
+  void updateNeigbourIntronsIds(ExonPtr exon);
 
   ~Database();
 

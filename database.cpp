@@ -525,7 +525,7 @@ void Database::dropSequenceIfExists(SequencePtr sequence)
             qWarning() << query.lastQuery();
         }
 
-        query.prepare("DELETE FROM coding_exons WHERE id_sequences=:seq_id");
+        query.prepare("DELETE FROM exons WHERE id_sequences=:seq_id");
         query.bindValue(":seq_id", seqId);
 
         if (!query.exec()) {
@@ -779,8 +779,9 @@ void Database::addIsoform(IsoformPtr isoform)
                   "id_genes"
                   ", id_sequences"
                   ", protein_xref"
-                  ", protein_name"
+                  ", protein_id"
                   ", product"
+                  ", note"
                   ", cds_start"
                   ", cds_end"
                   ", mrna_start"
@@ -802,8 +803,9 @@ void Database::addIsoform(IsoformPtr isoform)
                   ":id_genes"
                   ", :id_sequences"
                   ", :protein_xref"
-                  ", :protein_name"
+                  ", :protein_id"
                   ", :product"
+                  ", :note"
                   ", :cds_start"
                   ", :cds_end"
                   ", :mrna_start"
@@ -825,8 +827,9 @@ void Database::addIsoform(IsoformPtr isoform)
     query.bindValue(":id_genes", geneId);
     query.bindValue(":id_sequences", isoform->sequence.toStrongRef()->id);
     query.bindValue(":protein_xref", isoform->proteinXref);
-    query.bindValue(":protein_name", isoform->proteinName);
+    query.bindValue(":protein_id", isoform->proteinId);
     query.bindValue(":product", isoform->product);
+    query.bindValue(":note", isoform->errorMain ? isoform->note : "");
     query.bindValue(":cds_start", UINT32_MAX == isoform->cdsStart ? 0 : isoform->cdsStart);
     query.bindValue(":cds_end", isoform->cdsEnd);
     query.bindValue(":mrna_start", UINT32_MAX == isoform->mrnaStart ? 0 : isoform->mrnaStart);
@@ -859,7 +862,7 @@ void Database::addIsoform(IsoformPtr isoform)
         isoform->id = query.lastInsertId().toInt();
     }
 
-    Q_FOREACH(CodingExonPtr exon, isoform->exons) {
+    Q_FOREACH(ExonPtr exon, isoform->exons) {
         addCodingExon(exon);
     }
 
@@ -867,19 +870,19 @@ void Database::addIsoform(IsoformPtr isoform)
         addIntron(intron);
     }
 
-    Q_FOREACH(CodingExonPtr exon, isoform->exons) {
+    Q_FOREACH(ExonPtr exon, isoform->exons) {
         updateNeigbourIntronsIds(exon);
     }
 
 }
 
-void Database::addCodingExon(CodingExonPtr exon)
+void Database::addCodingExon(ExonPtr exon)
 {
     const qint32 seqId = exon->isoform.toStrongRef()->gene.toStrongRef()->sequence.toStrongRef()->id;
     const qint32 geneId = exon->isoform.toStrongRef()->gene.toStrongRef()->id;
     const qint32 isoformId = exon->isoform.toStrongRef()->id;
     QSqlQuery query("", *_db);
-    query.prepare("INSERT INTO coding_exons("
+    query.prepare("INSERT INTO exons("
                   "id_isoforms"
                   ", id_genes"
                   ", id_sequences"
@@ -1024,13 +1027,13 @@ void Database::addIntron(IntronPtr intron)
     }
 }
 
-void Database::updateNeigbourIntronsIds(CodingExonPtr exon)
+void Database::updateNeigbourIntronsIds(ExonPtr exon)
 {
     const qint32 exonId = exon->id;
     QSqlQuery query("", *_db);
     if (exon->prevIntron) {
         const qint32 prevId = exon->prevIntron.toStrongRef()->id;
-        query.prepare("UPDATE coding_exons SET prev_intron=:prev_id WHERE id=:exon_id");
+        query.prepare("UPDATE exons SET prev_intron=:prev_id WHERE id=:exon_id");
         query.bindValue(":prev_id", prevId);
         query.bindValue(":exon_id", exonId);
         if (!query.exec()) {
@@ -1041,7 +1044,7 @@ void Database::updateNeigbourIntronsIds(CodingExonPtr exon)
     }
     if (exon->nextIntron) {
         const qint32 nextId = exon->nextIntron.toStrongRef()->id;
-        query.prepare("UPDATE coding_exons SET next_intron=:next_id WHERE id=:exon_id");
+        query.prepare("UPDATE exons SET next_intron=:next_id WHERE id=:exon_id");
         query.bindValue(":next_id", nextId);
         query.bindValue(":exon_id", exonId);
         if (!query.exec()) {

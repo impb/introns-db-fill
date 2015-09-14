@@ -354,13 +354,16 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
     const auto attrs = parseFeatureAttributes(value);
 
     if (attrs.contains("protein_id")) {
-        targetIsoform->proteinName = attrs["protein_id"];
+        targetIsoform->proteinId = attrs["protein_id"];
     }
     if (attrs.contains("db_xref")) {
         targetIsoform->proteinXref = attrs["db_xref"];
     }
     if (attrs.contains("product")) {
         targetIsoform->product = attrs["product"];
+    }
+    if (attrs.contains("note")) {
+        targetIsoform->note = attrs["note"];
     }
 
     if ("CDS" == prefix) {
@@ -393,7 +396,7 @@ void GbkParser::createIntronsAndExons(IsoformPtr isoform,
     {
         const int start = starts[exonIndex];
         const int end = ends[exonIndex];
-        CodingExonPtr exon(new CodingExon);
+        ExonPtr exon(new Exon);
         exon->start = start;
         exon->end = end;
         exon->isoform = isoform;
@@ -405,26 +408,26 @@ void GbkParser::createIntronsAndExons(IsoformPtr isoform,
     }
 
     if (1 == isoform->exons.size()) {
-        CodingExonPtr exon = isoform->exons.first();
+        ExonPtr exon = isoform->exons.first();
         exon->index = exon->revIndex = 0;
-        exon->type = CodingExon::Type::OneExon;
+        exon->type = Exon::Type::OneExon;
     }
     else {
         for (int index = 0; index < isoform->exons.size(); ++index) {
-            CodingExonPtr exon = isoform->exons.at(index);
+            ExonPtr exon = isoform->exons.at(index);
             exon->index = index;
             exon->revIndex = isoform->exons.size() - index - 1;
             if (0 == index) {
-                exon->type = CodingExon::Type::Start;
+                exon->type = Exon::Type::Start;
             }
             else if (isoform->exons.size()-1 == index) {
-                exon->type = CodingExon::Type::End;
+                exon->type = Exon::Type::End;
             }
             else {
-                exon->type = CodingExon::Type::Inner;
+                exon->type = Exon::Type::Inner;
             }
             if (index > 0) {
-                CodingExonPtr prevExon = isoform->exons[index-1];
+                ExonPtr prevExon = isoform->exons[index-1];
                 IntronPtr intron(new Intron);
                 intron->isoform = isoform;
                 intron->gene = isoform->gene;
@@ -529,7 +532,7 @@ void GbkParser::fillIntronsAndExonsFromOrigin(IsoformPtr isoform,
     isoform->startCodon = isoformOrigin.left(3);
     isoform->endCodon = isoformOrigin.right(3);
 
-    Q_FOREACH(CodingExonPtr exon, isoform->exons) {
+    Q_FOREACH(ExonPtr exon, isoform->exons) {
         const qint32 exonStart = exon->start;
         const qint32 exonEnd = exon->end;
 
