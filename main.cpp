@@ -18,7 +18,8 @@ struct Arguments {
     QString databasePass;  // --pass=...
     QString databaseName;  // --db=...
 
-    QString sequencesDir;  // --seqdir=...    
+    QString sequencesDir;  // --seqdir=...
+    QString translationsDir;  // --transdir=...
 
     quint16 maxThreads = 1;  // --threads=...
 
@@ -47,6 +48,9 @@ Arguments parseArguments()
         else if (arg.startsWith("--seqdir=")) {
             result.sequencesDir = arg.mid(9);
         }
+        else if (arg.startsWith("--transdir=")) {
+            result.translationsDir = arg.mid(11);
+        }
         else if (arg.startsWith("--threads=")) {
             result.maxThreads = arg.mid(10).toUShort();
         }
@@ -72,6 +76,9 @@ Arguments parseArguments()
     }
     if (result.sequencesDir.isEmpty()) {
         qWarning() << "Directory for storing sequneces not specified. Origins will not be stored!";
+    }
+    if (result.translationsDir.isEmpty()) {
+        qWarning() << "Directory for storing translations not specified. Translations will not be stored!";
     }
     if (0 == result.maxThreads) {
         result.maxThreads = qMin(QThread::idealThreadCount(), result.sourceFileNames.size());
@@ -152,7 +159,8 @@ void Worker::processOneFile()
                                         _args.databaseUser,
                                         _args.databasePass,
                                         _args.databaseName,
-                                        _args.sequencesDir
+                                        _args.sequencesDir,
+                                        _args.translationsDir
                                         ));
         parser->setDatabase(db);
         parser->setSource(inputSource, inputFileName);

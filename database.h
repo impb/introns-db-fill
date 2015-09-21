@@ -15,7 +15,8 @@ class Database {
 public:
   static QSharedPointer<Database> open(const QString &host,
                         const QString &userName, const QString &password,
-                        const QString &dbName, const QString &sequencesStoreDir);
+                        const QString &dbName, const QString &sequencesStoreDir,
+                                       const QString &translationsStoreDir);
 
   OrganismPtr findOrCreateOrganism(const QString & name);
   ChromosomePtr findOrCreateChromosome(const QString &name, OrganismPtr organism);
@@ -31,6 +32,8 @@ public:
 
   void addSequence(SequencePtr sequence);
   void storeOrigin(SequencePtr sequence);
+  void storeTranslation(IsoformPtr isoform);
+  static QString format60(const QString &s);
 
   void addGene(GenePtr gene);
   void addIsoform(IsoformPtr isoform);
@@ -58,6 +61,7 @@ private:
 
 
   QDir _sequencesStoreDir;
+  QDir _translationsStoreDir;
   QSqlDatabase * _db = nullptr;
 
 };

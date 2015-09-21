@@ -134,6 +134,7 @@ struct Sequence {
     qint32          id = 0;
     QString         sourceFileName;
     QString         refSeqId;
+    QString         version;
     QString         description;
     quint32         length = 0;
     OrganismWPtr    organism;
@@ -200,6 +201,7 @@ struct Isoform {
     QList<ExonPtr>    exons;
     QList<IntronPtr>  introns;
     bool              hasCDS = false;
+    QString         translation;
 };
 
 

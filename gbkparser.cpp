@@ -206,6 +206,9 @@ void GbkParser::parseTopLevel(const QString &prefix, QString value, SequencePtr 
     else if ("DEFINITION" == prefix) {
         seq->description = value.replace('\n', ' ').simplified();
     }
+    else if ("VERSION" == prefix) {
+        seq->version = value.replace('\n', ' ').simplified();
+    }
     else if ("FEATURES" == prefix) {
         _state = State::Features;
     }
@@ -382,6 +385,11 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
                               false,
                               bw,
                               starts, ends);
+
+        if (attrs.contains("translation")) {
+            targetIsoform->translation = attrs["translation"];
+        }
+
     }
 }
 

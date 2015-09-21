@@ -75,6 +75,7 @@ CREATE TABLE tax_groups1(
 CREATE TABLE tax_groups2(
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_tax_groups1 INT NOT NULL,
+    id_tax_kingdoms INT NOT NULL,
     name VARCHAR(30) UNIQUE NOT NULL,
     typee VARCHAR(500)
 );
@@ -127,7 +128,8 @@ CREATE TABLE chromosomes(
 CREATE TABLE sequences(
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     source_file_name VARCHAR(50),
-    ref_seq_id VARCHAR(20),
+    refseq_id VARCHAR(20),
+    version VARCHAR(50),
     description TEXT,
     lengthh INT NOT NULL DEFAULT 0,
     id_organisms INT NOT NULL,

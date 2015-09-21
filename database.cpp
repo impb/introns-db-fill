@@ -27,7 +27,8 @@ QMap<Qt::HANDLE,QSqlDatabase> Database::_connections;
 
 QSharedPointer<Database> Database::open(const QString &host,
                          const QString &userName, const QString &password,
-                         const QString &dbName, const QString &sequencesStoreDir)
+                         const QString &dbName, const QString &sequencesStoreDir,
+                                        const QString &translationsStoreDir)
 {
     QSharedPointer<Database> result(new Database);
 
@@ -54,11 +55,18 @@ QSharedPointer<Database> Database::open(const QString &host,
         result->_db = &_connections[threadId];
     }
     result->_sequencesStoreDir = QDir::root();
+    result->_translationsStoreDir = QDir::root();
 
     if (sequencesStoreDir.length() > 0) {
         const QString absPath = QDir(sequencesStoreDir).absolutePath();
         if (QDir::root().mkpath(absPath)) {
             result->_sequencesStoreDir = QDir(absPath);
+        }
+    }
+    if (translationsStoreDir.length() > 0) {
+        const QString absPath = QDir(translationsStoreDir).absolutePath();
+        if (QDir::root().mkpath(absPath)) {
+            result->_translationsStoreDir = QDir(absPath);
         }
     }
 
@@ -468,10 +476,11 @@ TaxGroup2Ptr Database::findOrCreateTaxGroup2(const QString &name, const QString 
             group->kingdomPtr = group1->kingdomPtr;
             group->taxGroup1Ptr = group1;
             QSqlQuery insertQuery("", *_db);
-            insertQuery.prepare("INSERT INTO tax_groups2(name,typee,id_tax_groups1) VALUES(:name,:typee,:id_tax_groups1)");
+            insertQuery.prepare("INSERT INTO tax_groups2(name,typee,id_tax_groups1,id_tax_kingdoms) VALUES(:name,:typee,:id_tax_groups1,:id_tax_kingdoms)");
             insertQuery.bindValue(":name", name);
             insertQuery.bindValue(":typee", type);
             insertQuery.bindValue(":id_tax_groups1", group1->id);
+            insertQuery.bindValue(":id_tax_kingdoms", group1->kingdomPtr.toStrongRef()->id);
 
             if (!insertQuery.exec()) {
                 qWarning() << insertQuery.lastError();
@@ -501,9 +510,9 @@ void Database::dropSequenceIfExists(SequencePtr sequence)
 
     QSqlQuery query("", *_db);
 
-    query.prepare("SELECT id FROM sequences WHERE id_organisms=:id_organisms AND ref_seq_id=:ref_seq_id");
+    query.prepare("SELECT id FROM sequences WHERE id_organisms=:id_organisms AND refseq_id=:refseq_id");
     query.bindValue(":id_organisms", organismId);
-    query.bindValue(":ref_seq_id", refSeqId);
+    query.bindValue(":refseq_id", refSeqId);
 
     if (!query.exec()) {
         qWarning() << query.lastError();
@@ -575,7 +584,8 @@ void Database::addSequence(SequencePtr sequence)
     QSqlQuery query("", *_db);
     query.prepare("INSERT INTO sequences("
                           "source_file_name"
-                          ", ref_seq_id"
+                          ", refseq_id"
+                          ", version"
                           ", description"
                           ", lengthh"
                           ", id_organisms"
@@ -583,7 +593,8 @@ void Database::addSequence(SequencePtr sequence)
                           ", origin_file_name"
                           ") VALUES("
                           ":file_name"
-                          ", :ref_seq_id"
+                          ", :refseq_id"
+                          ", :version"
                           ", :description"
                           ", :lengthh"
                           ", :id_organisms"
@@ -591,7 +602,8 @@ void Database::addSequence(SequencePtr sequence)
                           ", :origin_file_name"
                           ")");
     query.bindValue(":source_file_name", sequence->sourceFileName);
-    query.bindValue(":ref_seq_id", sequence->refSeqId);
+    query.bindValue(":refseq_id", sequence->refSeqId);
+    query.bindValue(":version", sequence->version);
     query.bindValue(":description", sequence->description);
     query.bindValue(":lengthh", sequence->length);
     query.bindValue(":id_organisms", organismId);
@@ -652,7 +664,7 @@ void Database::addSequence(SequencePtr sequence)
 
 void Database::storeOrigin(SequencePtr sequence)
 {
-    if (_sequencesStoreDir == QDir::root()) {
+    if (QDir::root() == _sequencesStoreDir) {
         return;
     }
     OrganismPtr organism = sequence->organism.toStrongRef();
@@ -706,6 +718,90 @@ void Database::storeOrigin(SequencePtr sequence)
         sequence->originFileName = fileName;
     }
     originFile.close();
+}
+
+void Database::storeTranslation(IsoformPtr isoform)
+{
+    if (QDir::root() == _translationsStoreDir) {
+        return;
+    }
+    if (isoform->translation.isEmpty()) {
+        return;
+    }
+    GenePtr gene = isoform->gene.toStrongRef();
+    SequencePtr sequence = isoform->sequence.toStrongRef();
+    OrganismPtr organism = sequence->organism.toStrongRef();
+    organism->mutex.lock();
+    QString organismName = organism->name;
+    organism->mutex.unlock();
+    organismName.replace(QRegExp("\\s+"), "_");
+    organismName.replace(QRegExp("[(),./\\]"), "");
+    organismName = organismName.toLower();
+
+    QString chromosomeName;
+    ChromosomePtr chromosome = sequence->chromosome.toStrongRef();
+    if (chromosome) {
+        chromosome->mutex.lock();
+        chromosomeName = chromosome->name;
+        chromosome->mutex.unlock();
+        chromosomeName.replace(QRegExp("\\s+"), "_");
+        chromosomeName.replace(".", "_");
+        chromosomeName.replace(QRegExp("[(),/\\]"), "");
+        chromosomeName = chromosomeName.toLower();
+    }
+
+    QString refName = sequence->refSeqId;
+    refName.replace(QRegExp("\\s+"), "_");
+    refName.replace(".", "_");
+    refName.replace(QRegExp("[(),/\\]"), "");
+    refName = refName.toLower();
+
+    QString dirName = chromosomeName.isEmpty()
+            ? organismName + "/" + refName
+            : organismName + "/" + chromosomeName + "/" + refName;
+
+    QString geneName = gene->name;
+    QString protName = isoform->proteinXref;
+    QString fileName = geneName + "_" + protName;
+    fileName.replace(QRegExp("\\s+"), "_");
+    fileName.replace(".", "_");
+    fileName.replace(QRegExp("[(),/\\]"), "");
+    fileName = fileName.toLower();
+    fileName += ".fasta";
+
+    if (! _translationsStoreDir.mkpath(dirName)) {
+        qWarning() << "Can't create dir '" << _translationsStoreDir.filePath(dirName) <<
+                      "'. Protein translation '" << fileName << "' will not be stored!";
+        return;
+    }
+
+    QFile translationFile(_translationsStoreDir.absoluteFilePath(fileName));
+    if (!translationFile.open(QIODevice::WriteOnly)) {
+        qWarning() << "Can't open '" << translationFile.fileName() <<
+                      "'. Protein translation '" << fileName << "' will not be stored!";
+        return;
+    }
+    QTextStream ts(&translationFile);
+    ts << "> " << geneName << "(genes id: " << gene->id <<") | " << protName << "\n";
+    ts << format60(isoform->translation) << "\n\n";
+    translationFile.close();
+
+}
+
+QString Database::format60(const QString &s)
+{
+    QString result;
+    result.reserve(s.length() + s.length() / 60);
+    quint8 counter = 0;
+    for (int i=0; i<s.length(); ++i) {
+        if (60 == counter) {
+            result.push_back('\n');
+            counter = 0;
+        }
+        result.push_back(s[i]);
+        counter ++;
+    }
+    return result;
 }
 
 
@@ -774,6 +870,20 @@ void Database::addGene(GenePtr gene)
 void Database::addIsoform(IsoformPtr isoform)
 {
     const qint32 geneId = isoform->gene.toStrongRef()->id;
+    isoform->exonsLength = 0;
+    Q_FOREACH(ExonPtr exon, isoform->exons) {
+        // coordinates include both borders in GBK
+        quint32 exonLength = (qint64)exon->end - (qint64)exon->start + 1;
+        if (!exon->origin.isEmpty()) {
+            const QByteArray & origin = exon->origin;
+            const quint32 originSize = origin.length();
+            Q_ASSERT(exonLength == originSize);
+        }
+        isoform->exonsLength += exonLength;
+    }
+    isoform->errorInLength = 0 != (isoform->exonsLength % 3);
+    isoform->errorMain = isoform->errorMain || isoform->errorInLength;
+
     QSqlQuery query("", *_db);
     query.prepare("INSERT INTO isoforms("
                   "id_genes"
