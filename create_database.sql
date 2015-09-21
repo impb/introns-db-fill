@@ -162,7 +162,7 @@ create TABLE isoforms(
     protein_xref VARCHAR(20),
     protein_id VARCHAR(100),
     product VARCHAR(250),
-    note VARCHAR(250),
+    note TEXT,
     cds_start INT,
     cds_end INT,
     mrna_start INT,
