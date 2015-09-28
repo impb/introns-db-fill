@@ -32,7 +32,7 @@ private:
 
     static IsoformPtr findRnaIsoformContainingLocation(
             const QList<IsoformPtr> &isoforms,
-            const quint32 start, const quint32 end,
+            const QList<quint32> & starts, const QList<quint32> & ends,
             const bool backwardChain);
 
     void parseTopLevel(const QString & prefix, QString value, SequencePtr seq);

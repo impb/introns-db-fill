@@ -24,6 +24,30 @@ struct Isoform;
 struct Exon;
 struct Intron;
 
+struct Range {
+    quint32 start;
+    quint32 end;
+
+    inline static QList<Range> createList(const QList<quint32> &starts,
+                                          const QList<quint32> &ends)
+    {
+        Q_ASSERT(starts.size() == ends.size());
+        QList<Range> result;
+        for (int i=0; i<starts.size(); ++i) {
+            Range range;
+            range.start = starts[i];
+            range.end = ends[i];
+            result.push_back(range);
+        }
+        return result;
+    }
+
+
+    inline bool contains(const Range & other) const {
+        return this->start <= other.start && this->end >= other.end;
+    }
+};
+
 typedef QSharedPointer<IntronType> IntronTypePtr;
 typedef QSharedPointer<TaxKingdom> TaxKingdomPtr;
 typedef QSharedPointer<TaxGroup1> TaxGroup1Ptr;
@@ -202,6 +226,10 @@ struct Isoform {
     QList<IntronPtr>  introns;
     bool              hasCDS = false;
     QString         translation;
+
+    // Fields required to match CDS/mRNA
+    QList<Range>    mRnaRanges;
+
 };
 
 

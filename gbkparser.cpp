@@ -160,16 +160,30 @@ GenePtr GbkParser::findGeneContainingLocation(
 
 IsoformPtr GbkParser::findRnaIsoformContainingLocation(
         const QList<IsoformPtr> &isoforms,
-        const quint32 start,
-        const quint32 end,
+        const QList<quint32> & starts,
+        const QList<quint32> & ends,
         const bool backwardChain)
 {
+    const QList<Range> ranges = Range::createList(starts, ends);
     Q_FOREACH(IsoformPtr iso, isoforms) {
-        const bool startMatch = start >= iso->mrnaStart;
-        const bool endMatch = end <= iso->mrnaEnd;
-        const bool chainMatch = backwardChain == iso->gene.toStrongRef()->backwardChain;
-        if (startMatch && endMatch && chainMatch) {
-            return iso;
+        if (Isoform::MRNA == iso->type) {
+            const bool chainMatch = backwardChain == iso->gene.toStrongRef()->backwardChain;
+            int matchingRanges = 0;
+            if (chainMatch && (ranges.size() == iso->mRnaRanges.size())) {
+                Q_FOREACH(const Range & cdsRange, ranges) {
+                    bool rangeMatchFound;
+                    Q_FOREACH(const Range & rnaRange, iso->mRnaRanges) {
+                        if (rnaRange.contains(cdsRange)) {
+                            rangeMatchFound = true;
+                            break;
+                        }
+                    }
+                    matchingRanges += rangeMatchFound ? 1 : 0;
+                }
+            }
+            if (chainMatch && (ranges.size() == matchingRanges)) {
+                return iso;
+            }
         }
     }
 
@@ -303,7 +317,7 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         // CDS must be linked to existing mRNA isoform
         const QList<IsoformPtr> & geneIsoforms = targetGene->isoforms;
         targetIsoform = findRnaIsoformContainingLocation(
-                    geneIsoforms, start, end, bw
+                    geneIsoforms, starts, ends, bw
                     );
 
         if (! targetIsoform) {
@@ -348,7 +362,8 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
             targetIsoform->mrnaStart = start;
             targetIsoform->mrnaEnd = end;
             targetIsoform->exonsMrnaCount = starts.size();
-            targetGene->isoforms.push_back(targetIsoform);
+            targetIsoform->mRnaRanges = Range::createList(starts, ends);
+            targetGene->isoforms.push_back(targetIsoform);            
         }
         else {
             targetGene->hasRNA = true;
