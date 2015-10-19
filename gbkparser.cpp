@@ -130,8 +130,8 @@ GenePtr GbkParser::findGeneMatchingLocation(
         const bool backwardChain)
 {
     Q_FOREACH(GenePtr gene, genes) {
-        const bool startMatch = start == gene->start;
-        const bool endMatch = end == gene->end;
+        const bool startMatch = start >= gene->start;
+        const bool endMatch = end <= gene->end;
         const bool chainMatch = backwardChain == gene->backwardChain;
         if (startMatch && endMatch && chainMatch) {
             return gene;
@@ -158,30 +158,54 @@ GenePtr GbkParser::findGeneContainingLocation(
     return GenePtr();
 }
 
+bool cdsRangesMatchesRnaRanges(const QList<Range> & cdsRanges,
+                               const QList<Range> & mrnaRanges)
+{
+    // CDS corresponds to mRNA ⇔ :
+    //  1. First exocC[xc,yc] ∊ CDS: (∃ exonM[xm,ym] : xc >= xm && yc == ym)
+    //  2. ∀ inner exonC ∊ CDS: (∃ exonM ∊ mRNA: exonC == exonM)
+    //  3. Last exonC[xc,yx] ∊ CDS: (∃ exonM[xm,ym] : xc == xm && yc <= ym)
+    QVector<bool> cdsRangesGood(cdsRanges.size(), false);
+    for (int i=0; i<cdsRanges.size(); ++i) {
+        const bool first = 0 == i;
+        const bool last  = cdsRanges.size()-1 == i;
+        const bool mid = !first && !last;
+        const bool single = cdsRanges.size() == 1;
+
+        const bool leftBoundMustExactMatch  = (!single) && (mid || last);
+        const bool rightBoundMustExactMatch = (!single) && (mid || first);
+
+        const Range & cds = cdsRanges.at(i);
+
+        for (int j=0; j<mrnaRanges.size(); ++j) {
+            const Range & mrna = mrnaRanges.at(j);
+            bool leftOk = leftBoundMustExactMatch
+                    ? mrna.start == cds.start
+                    : mrna.start <= cds.start;
+            bool rightOk = rightBoundMustExactMatch
+                    ? mrna.end == cds.end
+                    : mrna.end >= cds.end;
+            if (leftOk && rightOk) {
+                cdsRangesGood[i] = true;
+                break;
+            }
+        }
+    }
+    return cdsRangesGood.count(true) == cdsRangesGood.size();
+}
+
 IsoformPtr GbkParser::findRnaIsoformContainingLocation(
         const QList<IsoformPtr> &isoforms,
         const QList<quint32> & starts,
         const QList<quint32> & ends,
         const bool backwardChain)
-{
+{    
     const QList<Range> ranges = Range::createList(starts, ends);
+
     Q_FOREACH(IsoformPtr iso, isoforms) {
         if (Isoform::MRNA == iso->type) {
             const bool chainMatch = backwardChain == iso->gene.toStrongRef()->backwardChain;
-            int matchingRanges = 0;
-            if (chainMatch && (ranges.size() == iso->mRnaRanges.size())) {
-                Q_FOREACH(const Range & cdsRange, ranges) {
-                    bool rangeMatchFound;
-                    Q_FOREACH(const Range & rnaRange, iso->mRnaRanges) {
-                        if (rnaRange.contains(cdsRange)) {
-                            rangeMatchFound = true;
-                            break;
-                        }
-                    }
-                    matchingRanges += rangeMatchFound ? 1 : 0;
-                }
-            }
-            if (chainMatch && (ranges.size() == matchingRanges)) {
+            if (chainMatch && cdsRangesMatchesRnaRanges(ranges, iso->mRnaRanges)) {
                 return iso;
             }
         }
@@ -294,6 +318,7 @@ GenePtr GbkParser::parseGene(const QString & value, SequencePtr seq)
 void GbkParser::parseCdsOrRna(const QString & prefix,
                               const QString &value, SequencePtr seq)
 {    
+    const auto attrs = parseFeatureAttributes(value);
     quint32 start = UINT32_MAX;
     quint32 end = 0;
     bool bw = false;
@@ -378,9 +403,7 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
     }
 
     targetIsoform->gene = targetGene.toWeakRef();
-    targetIsoform->sequence = targetGene->sequence;
-
-    const auto attrs = parseFeatureAttributes(value);
+    targetIsoform->sequence = targetGene->sequence;    
 
     if (attrs.contains("protein_id")) {
         targetIsoform->proteinId = attrs["protein_id"];
