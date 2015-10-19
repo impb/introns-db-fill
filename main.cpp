@@ -2,6 +2,7 @@
 #include "iniparser.h"
 #include "gbkparser.h"
 #include "gzipreader.h"
+#include "logger.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -25,6 +26,8 @@ struct Arguments {
 
     QStringList sourceFileNames;    // positional parameters
     QString extraDataFile;  // --use-data=...
+
+    QString loggerFileName; // --logfile=...
 };
 
 
@@ -57,6 +60,9 @@ Arguments parseArguments()
         else if (arg.startsWith("--use-data=")) {
             result.extraDataFile = arg.mid(11);
         }
+        else if (arg.startsWith("--logfile=")) {
+            result.loggerFileName = arg.mid(10);
+        }
         else if (!arg.startsWith("-")) {
             result.sourceFileNames.push_back(arg);
         }
@@ -79,6 +85,9 @@ Arguments parseArguments()
     }
     if (result.translationsDir.isEmpty()) {
         qWarning() << "Directory for storing translations not specified. Translations will not be stored!";
+    }
+    if (result.loggerFileName.isEmpty()) {
+        qWarning() << "Log file name not specified. Errors will be printed at STDERR.";
     }
     if (0 == result.maxThreads) {
         result.maxThreads = qMin(QThread::idealThreadCount(), result.sourceFileNames.size());
@@ -204,11 +213,14 @@ void Worker::processOneFile()
     }
 }
 
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
     const Arguments args = parseArguments();
+    Logger::init(args.loggerFileName);
+
     const quint32 filesPerWorker = args.sourceFileNames.size() / args.maxThreads;
 
     QList<Worker*> pool;

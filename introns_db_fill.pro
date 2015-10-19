@@ -22,14 +22,16 @@ SOURCES += main.cpp \
     gbkparser.cpp \
     database.cpp \
     gzipreader.cpp \
-    iniparser.cpp
+    iniparser.cpp \
+    logger.cpp
 
 HEADERS += \
     gbkparser.h \
     structures.h \
     database.h \
     gzipreader.h \
-    iniparser.h
+    iniparser.h \
+    logger.h
 
 RESOURCES +=
 
