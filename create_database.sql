@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS introns;
 DROP TABLE IF EXISTS exons;
 DROP TABLE IF EXISTS isoforms;
+DROP TABLE IF EXISTS orphaned_cdses;
 DROP TABLE IF EXISTS genes;
 DROP TABLE IF EXISTS sequences;
 DROP TABLE IF EXISTS organisms;
@@ -135,6 +136,15 @@ CREATE TABLE sequences(
     id_organisms INT NOT NULL,
     id_chromosomes INT,
     origin_file_name VARCHAR(50)
+);
+
+
+CREATE TABLE orphaned_cdses(
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    source_file_name VARCHAR(50),
+    source_line_start INT NOT NULL,
+    source_line_end INT NOT NULL
+    /* CONSTRAINT unique_orphaned_cdses UNIQUE(source_file_name,source_line_start,source_line_end) */
 );
 
 

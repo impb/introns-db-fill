@@ -662,6 +662,28 @@ void Database::addSequence(SequencePtr sequence)
     organism->mutex.unlock();
 }
 
+void Database::addOrphanedCDS(const QString &fileName, const quint32 lineStart, const quint32 lineEnd)
+{
+    QSqlQuery query("", *_db);
+    query.prepare("INSERT INTO orphaned_cdses("
+                          "source_file_name"
+                          ", source_line_start"
+                          ", source_line_end"
+                          ") VALUES("
+                          ":source_file_name"
+                          ", :source_line_start"
+                          ", :source_line_end"
+                          ")");
+    query.bindValue(":source_file_name", fileName);
+    query.bindValue(":source_line_start", lineStart);
+    query.bindValue(":source_line_end", lineEnd);
+    if (!query.exec()) {
+        qWarning() << query.lastError();
+        qWarning() << query.lastError().text();
+        qWarning() << query.lastQuery();
+    }
+}
+
 void Database::storeOrigin(SequencePtr sequence)
 {
     if (QDir::root() == _sequencesStoreDir) {

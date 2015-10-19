@@ -61,6 +61,8 @@ private:
 
     QIODevice * _io = nullptr;
     QTextStream *_stream = nullptr;
+    quint32 _featureStartLineNo = 0u;
+    quint32 _currentLineNo = 0u;
     QString _fileName;
     QSharedPointer<Database> _db;
     QString _overrideOrganismName;

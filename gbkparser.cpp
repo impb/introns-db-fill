@@ -43,6 +43,7 @@ SequencePtr GbkParser::readSequence()
     QString secondLevelValue;
     while (!atEnd()) {
         QString currentLine = _stream->readLine();
+        _currentLineNo += 1;
         currentLine.replace('\t', "    ");
         if ("//" == currentLine.trimmed()) {
             break;
@@ -100,6 +101,7 @@ SequencePtr GbkParser::readSequence()
                 }
                 secondLevelName = prefix;
                 secondLevelValue = value;
+                _featureStartLineNo = _currentLineNo;
             }
             if ("ORIGIN" == prefix) {
                 _state = State::Origin;
@@ -248,6 +250,7 @@ void GbkParser::parseTopLevel(const QString &prefix, QString value, SequencePtr 
     }
     else if ("FEATURES" == prefix) {
         _state = State::Features;
+        _featureStartLineNo = _currentLineNo;
     }
     else if ("ORIGIN" == prefix) {
         _state = State::Origin;
@@ -335,6 +338,7 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
         targetGene = findGeneContainingLocation(allGenes, start, end, bw);
 
         if (! targetGene) {
+            _db->addOrphanedCDS(seq->sourceFileName, _featureStartLineNo, _currentLineNo);
             return;
         }
 
@@ -345,12 +349,14 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
                     );
 
         if (! targetIsoform) {
-            const QString protName = attrs.contains("protein_id")
-                    ? attrs["protein_id"] : "[unknown_protein_id]";
-            const QString seqFileName = seq->sourceFileName;
-            const QString message = QString("Can't find mRNA for CDS: { protein = %1, sequenceFile = %2 }")
-                    .arg(protName).arg(seqFileName);
-            qWarning() << message;
+//            const QString protName = attrs.contains("protein_id")
+//                    ? attrs["protein_id"] : "[unknown_protein_id]";
+//            const QString seqFileName = seq->sourceFileName;
+//            const QString message =
+//                    QString("Can't find mRNA for CDS: { protein = %1, sequenceFile = %2 }")
+//                    .arg(protName).arg(seqFileName);
+//            qWarning() << message;
+            _db->addOrphanedCDS(seq->sourceFileName, _featureStartLineNo, _currentLineNo);
             return;
         }
 
