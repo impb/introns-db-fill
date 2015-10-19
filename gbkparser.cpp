@@ -209,8 +209,7 @@ IsoformPtr GbkParser::findRnaIsoformContainingLocation(
                 return iso;
             }
         }
-    }
-
+    }    
     return IsoformPtr();
 }
 
@@ -346,6 +345,12 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
                     );
 
         if (! targetIsoform) {
+            const QString protName = attrs.contains("protein_id")
+                    ? attrs["protein_id"] : "[unknown_protein_id]";
+            const QString seqFileName = seq->sourceFileName;
+            const QString message = QString("Can't find mRNA for CDS: { protein = %1, sequenceFile = %2 }")
+                    .arg(protName).arg(seqFileName);
+            qWarning() << message;
             return;
         }
 
