@@ -662,21 +662,35 @@ void Database::addSequence(SequencePtr sequence)
     organism->mutex.unlock();
 }
 
-void Database::addOrphanedCDS(const QString &fileName, const quint32 lineStart, const quint32 lineEnd)
+void Database::addOrphanedCDS(const QString &fileName,
+                              const quint32 lineStart,
+                              const quint32 lineEnd,
+                              const QString &refSeqId,
+                              const QString &dbXref,
+                              const QString &product)
 {
     QSqlQuery query("", *_db);
     query.prepare("INSERT INTO orphaned_cdses("
-                          "source_file_name"
-                          ", source_line_start"
-                          ", source_line_end"
-                          ") VALUES("
-                          ":source_file_name"
-                          ", :source_line_start"
-                          ", :source_line_end"
-                          ")");
+                  "source_file_name"
+                  ", source_line_start"
+                  ", source_line_end"
+                  ", refseq_id"
+                  ", protein_xref"
+                  ", product"
+                  ") VALUES("
+                  ":source_file_name"
+                  ", :source_line_start"
+                  ", :source_line_end"
+                  ", :refseq_id"
+                  ", :protein_xref"
+                  ", :product"
+                   ")");
     query.bindValue(":source_file_name", fileName);
     query.bindValue(":source_line_start", lineStart);
     query.bindValue(":source_line_end", lineEnd);
+    query.bindValue(":refseq_id", refSeqId);
+    query.bindValue(":protein_xref", dbXref);
+    query.bindValue(":product", product);
     if (!query.exec()) {
         qWarning() << query.lastError();
         qWarning() << query.lastError().text();

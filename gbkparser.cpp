@@ -336,9 +336,13 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
     if ("CDS" == prefix) {
         // CDS might have non-coding bounds inside gene
         targetGene = findGeneContainingLocation(allGenes, start, end, bw);
+        const QString & refSeqId = seq->refSeqId;
+        const QString dbXref = attrs.contains("db_xref") ? attrs["db_xref"] : QString();
+        const QString product = attrs.contains("product") ? attrs["product"] : QString();
 
         if (! targetGene) {
-            _db->addOrphanedCDS(seq->sourceFileName, _featureStartLineNo, _currentLineNo);
+            _db->addOrphanedCDS(seq->sourceFileName, _featureStartLineNo, _currentLineNo,
+                                refSeqId, dbXref, product);
             return;
         }
 
@@ -356,7 +360,8 @@ void GbkParser::parseCdsOrRna(const QString & prefix,
 //                    QString("Can't find mRNA for CDS: { protein = %1, sequenceFile = %2 }")
 //                    .arg(protName).arg(seqFileName);
 //            qWarning() << message;
-            _db->addOrphanedCDS(seq->sourceFileName, _featureStartLineNo, _currentLineNo);
+            _db->addOrphanedCDS(seq->sourceFileName, _featureStartLineNo, _currentLineNo,
+                                refSeqId, dbXref, product);
             return;
         }
 

@@ -143,7 +143,10 @@ CREATE TABLE orphaned_cdses(
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     source_file_name VARCHAR(50),
     source_line_start INT NOT NULL,
-    source_line_end INT NOT NULL
+    source_line_end INT NOT NULL,
+    refseq_id VARCHAR(20) NOT NULL,
+    protein_xref VARCHAR(20),
+    product VARCHAR(200)
     /* CONSTRAINT unique_orphaned_cdses UNIQUE(source_file_name,source_line_start,source_line_end) */
 );
 

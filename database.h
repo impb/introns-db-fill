@@ -31,7 +31,10 @@ public:
   void dropSequenceIfExists(SequencePtr sequence);
 
   void addSequence(SequencePtr sequence);
-  void addOrphanedCDS(const QString & fileName, const quint32 lineStart, const quint32 lineEnd);
+  void addOrphanedCDS(const QString & fileName, const quint32 lineStart, const quint32 lineEnd,
+                      const QString &refSeqId,
+                      const QString &dbXref,
+                      const QString &product);
   void storeOrigin(SequencePtr sequence);
   void storeTranslation(IsoformPtr isoform);
   static QString format60(const QString &s);
