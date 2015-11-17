@@ -24,10 +24,17 @@ Database must be initialized by schema before first use. Database schema
 provided in file `create_database.sql`. To run this code in MySQL:
 
 ```
-mysql CONNECTION_PARAMETERS < create_database.sql
+mysql -p -u USER_NAME DATABASE_NAME < create_database.sql
 ```
 
-For `CONNECTION_PARAMETERS` see MySQL Reference.
+Where:
+
+ * `USER_NAME` - database user name
+ 
+ * `DATABASE_NAME` - database instance name
+ 
+
+For other possible parameters see MySQL Reference.
 
 **Note 3: ** database initialization will drop all previously created and
 filled up tables!. Use with care.
