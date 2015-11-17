@@ -9,9 +9,15 @@ extern "C" {
 
 Logger * Logger::_logger = 0;
 
-
+#if QT_VERSION >= 0x050000
+void messageHandle(QtMsgType type, const QMessageLogContext&, const QString &message)
+#else
 void messageHandle(QtMsgType type, const char *msg)
+#endif
 {
+    #if QT_VERSION >= 0x050000
+    const char *msg = message.toUtf8().constData();
+    #endif
     switch (type) {
     case QtDebugMsg:
         fprintf(stderr, "Debug: %s\n", msg);
@@ -31,7 +37,11 @@ void messageHandle(QtMsgType type, const char *msg)
 void Logger::init(const QString &fileName)
 {
     _logger = new Logger(fileName);
+#if QT_VERSION >= 0x050000
+    qInstallMessageHandler(messageHandle);
+#else
     qInstallMsgHandler(messageHandle);
+#endif
 }
 
 void Logger::error(const QString &message)
